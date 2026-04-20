@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manajemen Driver</title>
+
+<style>
+body{
+  font-family:Arial;
+  background:#f4f6f9;
+  margin:0;
+}
+
+/* SIDEBAR */
+.sidebar{
+  position:fixed;
+  top:0;
+  left:-100%;
+  width:220px;
+  height:100%;
+  background:#1e293b;
+  color:#fff;
+  padding:20px 12px;
+  z-index:1000;
+  transition:.3s;
+}
+
+.sidebar.show{
+  left:0;
+}
+
+.sidebar h3{
+  text-align:center;
+  margin-bottom:20px;
+}
+
+.sidebar a{
+  display:block;
+  padding:10px;
+  margin-bottom:6px;
+  border-radius:10px;
+  text-decoration:none;
+  color:#cbd5f5;
+  font-size:14px;
+}
+
+.sidebar a:hover{ background:#334155; }
+.sidebar a.active{ background:#1e90ff; color:#fff; }
+
+/* OVERLAY */
+.overlay{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.3);
+  display:none;
+  z-index:998;
+}
+
+.overlay.show{ display:block; }
+
+/* CONTENT */
+.content{
+  padding:16px;
+}
+
+/* BUTTON */
+.menu-toggle{
+  position:fixed;
+  top:10px;
+  left:10px;
+  width:32px;
+  height:32px;
+  background:#1e90ff;
+  color:#fff;
+  border:none;
+  border-radius:8px;
+  font-size:18px;
+  z-index:1100;
+}
+
+/* CARD */
+.card{
+  font-size:13px;
+  background:#fff;
+  border-radius:14px;
+  padding:14px;
+  margin-bottom:12px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.08);
+}
+
+input,button{
+  padding:8px;
+  border-radius:8px;
+  border:1px solid #ddd;
+  font-size:12px;
+  width:100%;
+  margin-bottom:8px;
+}
+
+button{
+  background:#1e90ff;
+  color:#fff;
+  border:none;
+  cursor:pointer;
+}
+
+.driver-item{
+  padding:12px;
+  border-bottom:1px solid #eee;
+}
+
+.small{
+  font-size:12px;
+  color:#666;
+}
+
+.actions{
+  display:flex;
+  gap:6px;
+  margin-top:8px;
+}
+
+.edit{background:orange;}
+.delete{background:red;}
+
+/* POPUP */
+.popup{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.5);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:2000;
+}
+
+.popup-content{
+  background:#fff;
+  padding:20px;
+  border-radius:14px;
+  width:90%;
+  max-width:320px;
+}
+
+.btn-cancel{
+  background:#aaa;
+}
+</style>
+</head>
+
+<body>
+
+<button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+
+<div id="sidebar" class="sidebar">
+  <h3>🚌 School Bus</h3>
+
+  <a href="dashboard.html">🏠 Dashboard</a>
+  <a href="input.html">📝 Input</a>
+  <a href="lapor.html">📊 Laporan</a>
+  <a href="cari.html">✏️ Edit</a>
+  <a href="driver.html" class="active">🧑‍✈️ Driver</a>
+  <a href="config.html" id="menuConfig">⚙️ Setting</a>
+
+  <hr>
+  <a href="#" onclick="logout()">🚪 Logout</a>
+</div>
+
+<div id="overlay" class="overlay"></div>
+
+<div class="content">
+
+<h3>🚐 Manajemen Driver</h3>
+
+<div class="card">
+  <input type="text" id="nama" placeholder="Nama">
+  <input type="text" id="noHp" placeholder="No HP">
+  <input type="text" id="alamat" placeholder="Alamat">
+  <input type="date" id="tglInput">
+  <button onclick="saveDriver()">Simpan</button>
+</div>
+
+<div class="card">
+  <input type="text" id="search" placeholder="Cari driver..." oninput="filterData()">
+</div>
+
+<div class="card">
+  <div id="list">Loading...</div>
+</div>
+
+</div>
+
+<!-- POPUP -->
+<div id="popupEdit" class="popup">
+  <div class="popup-content">
+    <h3>Edit Driver</h3>
+    <input type="text" id="editNama">
+    <input type="text" id="editNoHp">
+    <input type="text" id="editAlamat">
+    <input type="date" id="editTgl">
+    <button onclick="updateDriver()">Update</button>
+    <button onclick="closePopup()" class="btn-cancel">Batal</button>
+  </div>
+</div>
+
+ <script type="module">
+
+// ===== IMPORT FIREBASE =====
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  deleteDoc,
+  updateDoc,
+  doc,
+  onSnapshot,
+  query,
+  orderBy
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ===== CONFIG =====
+const firebaseConfig = {
+  apiKey: "AIzaSyBxbArCZ6iIWQ8wS7QIonZOeN4t_r9o2WU",
+  authDomain: "schoolbus-6a7fd.firebaseapp.com",
+  projectId: "schoolbus-6a7fd",
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ===== ROLE =====
+  
+  const role = (localStorage.getItem("role") || "").toLowerCase();
+
+// sembunyikan menu setting kalau bukan admin
+if(role !== "admin"){
+  const menu = document.getElementById("menuConfig");
+  if(menu){
+    menu.style.display = "none";
+  }
+}
+
+
+// ===== SIDEBAR =====
+window.toggleSidebar = function(){
+  const s = document.getElementById("sidebar");
+  const o = document.getElementById("overlay");
+
+  s.classList.toggle("show");
+  o.classList.toggle("show");
+};
+
+document.getElementById("overlay").onclick = ()=>{
+  document.getElementById("sidebar").classList.remove("show");
+  document.getElementById("overlay").classList.remove("show");
+};
+
+document.addEventListener("click", function(e){
+  const sidebar = document.getElementById("sidebar");
+  const btn = document.querySelector(".menu-toggle");
+  const overlay = document.getElementById("overlay");
+
+  if(sidebar.contains(e.target) || btn.contains(e.target)) return;
+
+  sidebar.classList.remove("show");
+  overlay.classList.remove("show");
+});
+
+// ===== STATE =====
+let drivers = [];
+let editId = null;
+
+// ===== LOAD DATA =====
+const q = query(collection(db,"drivers"), orderBy("createdAt","desc"));
+
+onSnapshot(q, snap=>{
+  drivers = [];
+  snap.forEach(d=>{
+    drivers.push({id:d.id, ...d.data()});
+  });
+  render(drivers);
+});
+
+// ===== SAVE =====
+window.saveDriver = async function(){
+  const nama = namaEl.value.trim();
+  const noHp = noHpEl.value.trim();
+  const alamat = alamatEl.value.trim();
+  const tgl = tglEl.value;
+
+  if(!nama || !noHp || !alamat || !tgl){
+    alert("Lengkapi data");
+    return;
+  }
+
+  await addDoc(collection(db,"drivers"),{
+    nama,noHp,alamat,tglInput:tgl,
+    createdAt: Date.now()
+  });
+
+  resetForm();
+};
+
+// ===== DELETE =====
+window.del = async function(id){
+  if(confirm("Hapus?")){
+    await deleteDoc(doc(db,"drivers",id));
+  }
+};
+
+// ===== EDIT =====
+window.edit = function(d){
+  editId = d.id;
+
+  editNama.value = d.nama;
+  editNoHp.value = d.noHp;
+  editAlamat.value = d.alamat;
+  editTgl.value = d.tglInput;
+
+  popupEdit.style.display = "flex";
+};
+
+window.updateDriver = async function(){
+  await updateDoc(doc(db,"drivers",editId),{
+    nama: editNama.value,
+    noHp: editNoHp.value,
+    alamat: editAlamat.value,
+    tglInput: editTgl.value
+  });
+
+  closePopup();
+};
+
+window.closePopup = function(){
+  popupEdit.style.display = "none";
+};
+
+// ===== SEARCH =====
+window.filterData = function(){
+  const key = search.value.toLowerCase();
+  render(drivers.filter(d=>d.nama.toLowerCase().includes(key)));
+};
+
+// ===== RENDER =====
+function render(data){
+  let html = "";
+
+  data.forEach(d=>{
+    html += `
+    <div class="driver-item">
+      <b>${d.nama}</b><br>
+      <span class="small">${d.noHp}</span><br>
+      <span class="small">${d.alamat}</span>
+
+      <div class="actions">
+        <button class="edit" onclick='edit(${JSON.stringify(d)})'>Edit</button>
+        <button class="delete" onclick="del('${d.id}')">Hapus</button>
+      </div>
+    </div>
+    `;
+  });
+
+  list.innerHTML = html || "Tidak ada data";
+}
+
+// ===== RESET =====
+function resetForm(){
+  nama.value = "";
+  noHp.value = "";
+  alamat.value = "";
+  tglInput.value = "";
+}
+
+// ===== LOGOUT =====
+window.logout = function(){
+  localStorage.clear();
+  window.location.href = "index.html";
+};
+
+</script>
+</body>
+</html>

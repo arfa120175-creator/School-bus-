@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>School Bus App</title>
+
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#1e90ff">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="School Bus App">
+
+  <style>
+    *{
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
+    }
+
+    :root{
+      --primary:#1e90ff;
+      --primary-dark:#187bdb;
+      --bg:#f4f7fb;
+      --card:#ffffff;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --shadow:0 10px 30px rgba(15,23,42,.10);
+      --radius:22px;
+    }
+
+    body{
+      font-family:Arial, sans-serif;
+      background:linear-gradient(180deg,#eaf4ff 0%, #f4f7fb 100%);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      color:var(--text);
+    }
+
+    .wrap{
+      width:100%;
+      max-width:420px;
+    }
+
+    .card{
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:28px 22px;
+      text-align:center;
+      border:1px solid #eaf0f6;
+    }
+
+    .logo{
+      width:92px;
+      height:92px;
+      border-radius:24px;
+      margin:0 auto 18px;
+      display:block;
+      object-fit:cover;
+      background:#fff;
+      box-shadow:0 12px 25px rgba(30,144,255,.18);
+      border:1px solid #dbeafe;
+      padding:8px;
+    }
+
+    h1{
+      font-size:28px;
+      color:var(--primary);
+      margin-bottom:10px;
+    }
+
+    p{
+      font-size:14px;
+      color:var(--muted);
+      line-height:1.6;
+      margin-bottom:24px;
+    }
+
+    .btn{
+      display:block;
+      width:100%;
+      text-decoration:none;
+      background:var(--primary);
+      color:#fff;
+      padding:14px 16px;
+      border-radius:14px;
+      font-size:15px;
+      font-weight:700;
+      transition:.2s;
+      margin-top:10px;
+    }
+
+    .btn:hover{
+      background:var(--primary-dark);
+    }
+
+    .sub-btn{
+      display:block;
+      width:100%;
+      text-decoration:none;
+      background:#eef6ff;
+      color:var(--primary);
+      padding:13px 16px;
+      border-radius:14px;
+      font-size:14px;
+      font-weight:700;
+      transition:.2s;
+      margin-top:10px;
+      border:1px solid #dbeafe;
+    }
+
+    .sub-btn:hover{
+      background:#dff0ff;
+    }
+
+    .footer{
+      margin-top:16px;
+      text-align:center;
+      color:#94a3b8;
+      font-size:12px;
+    }
+
+    @media (max-width:480px){
+      .card{
+        padding:24px 18px;
+      }
+
+      h1{
+        font-size:24px;
+      }
+
+      p{
+        font-size:13px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <img src="./img/icon-512.png" alt="Logo School Bus App" class="logo">
+
+      <h1>School Bus App</h1>
+
+      <p>
+        Aplikasi pengelolaan perjalanan school bus berbasis Firebase.
+        Input data, edit perjalanan, lihat laporan, dan cetak PDF dalam satu sistem.
+      </p>
+
+      <a href="dashboard.html" class="btn">Masuk ke Dashboard</a>
+      <a href="input.html" class="sub-btn">Langsung ke Input Perjalanan</a>
+    </div>
+
+    <div class="footer">
+      Versi sederhana • Mobile Friendly
+    </div>
+  </div>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", async () => {
+        try {
+          await navigator.serviceWorker.register("./service-worker.js");
+          console.log("Service Worker berhasil didaftarkan");
+        } catch (error) {
+          console.error("Service Worker gagal:", error);
+        }
+      });
+    }
+  </script>
+</body>
+</html>

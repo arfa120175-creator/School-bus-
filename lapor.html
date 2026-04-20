@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Laporan Perjalanan - FIX</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+body{font-family:Arial;background:#f4f7fb;padding:16px;margin:0}
+h2{text-align:center;color:#1e90ff}
+
+.card{background:#fff;padding:16px;border-radius:16px;margin-bottom:16px;}
+
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px;border-bottom:1px solid #ddd;font-size:13px}
+th{background:#e0f2fe}
+
+.btn{padding:10px;border:none;border-radius:10px;cursor:pointer}
+.btn-primary{background:#1e90ff;color:#fff}
+.btn-danger{background:#ef4444;color:#fff}
+.btn-success{background:#16a34a;color:#fff}
+
+.filter-container{display:flex;flex-wrap:wrap;gap:10px}
+input,select{padding:8px}
+th{
+  background:#1e90ff;
+  color:white;
+}
+  .navbar{
+  position:fixed;
+  bottom:10px;
+  left:50%;
+  transform:translateX(-50%);
+  width:min(760px, calc(100% - 20px));
+  background:#fff;
+  border-radius:20px;
+  padding:10px;
+  display:flex;
+  justify-content:space-around;
+  box-shadow:0 10px 25px rgba(0,0,0,0.1);
+  z-index:999;
+}
+
+.navbar a{
+  text-decoration:none;
+  font-size:13px;
+  font-weight:600;
+  color:#475569;
+}
+
+.navbar a:hover{
+  color:#1e90ff;
+}
+  /* SIDEBAR */
+.sidebar{
+  position:fixed;
+  top:0;
+  left:0;
+  width:220px;
+  height:100%;
+  background:#1e293b;
+  color:#fff;
+  padding:20px 12px;
+  display:flex;
+  flex-direction:column;
+  z-index:1000;
+}
+
+.sidebar h3{
+  text-align:center;
+  margin-bottom:20px;
+}
+
+.sidebar a{
+  color:#cbd5f5;
+  text-decoration:none;
+  padding:10px 12px;
+  border-radius:10px;
+  margin-bottom:6px;
+  display:block;
+  font-size:14px;
+}
+
+.sidebar a:hover{
+  background:#334155;
+  color:#fff;
+}
+
+.sidebar a.active{
+  background:#1e90ff;
+  color:#fff;
+}
+
+/* CONTENT GESER */
+body{
+  margin-left:230px;
+}
+
+/* TOGGLE BUTTON */
+.menu-toggle{
+  display:none;
+}
+
+/* MOBILE */
+@media(max-width:768px){
+  .sidebar{
+    left:-100%;
+    transition:.3s;
+  }
+
+  .sidebar.show{
+    left:0;
+  }
+
+  body{
+    margin-left:0;
+  }
+
+  .menu-toggle{
+    display:block;
+    position:fixed;
+    top:10px;
+    left:10px;
+    background:#1e90ff;
+    color:#fff;
+    border:none;
+    padding:8px 10px;
+    border-radius:8px;
+    z-index:1100;
+  }
+}
+ 
+.label-bold {
+    font-weight: bold;
+}
+.filter-container div{
+  display:flex;
+  flex-direction:column;
+  font-size:13px;
+}
+
+.label-bold{
+  font-weight:bold;
+  margin-bottom:4px;
+}
+select{
+  color:#111;            /* biar hitam tegas */
+  font-weight:600;       /* agak bold */
+}
+/* WRAPPER BIAR BISA SCROLL */
+.table-wrapper{
+  overflow-x:auto;
+}
+
+/* TABLE MIN WIDTH BIAR GA KEJEPIT */
+table{
+  min-width:600px;
+}
+
+/* MOBILE OPTIMIZE */
+@media(max-width:768px){
+
+  th, td{
+    font-size:11px;
+    padding:6px;
+    white-space:nowrap; /* biar ga turun ke bawah */
+  }
+
+  h2{
+    font-size:16px;
+  }
+
+  .card{
+    padding:10px;
+  }
+
+}
+  .table-wrapper::-webkit-scrollbar{
+  height:6px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb{
+  background:#1e90ff;
+  border-radius:10px;
+}
+  </style>
+</head>
+
+<body>
+<button class="menu-toggle" onclick="toggleMenu()">☰</button>
+
+<div class="sidebar">
+  <h3>🚌 School Bus</h3>
+
+  <a href="dashboard.html">🏠 Dashboard</a>
+  <a href="input.html">📝 Input</a>
+  <a href="lapor.html" class="active">📊 Laporan</a>
+  <a href="cari.html">✏️ Edit</a>
+  <a href="driver.html">🧑‍✈️ Driver</a>
+   <a href="config.html" id="menuConfig">⚙️ <span>Setting</span></a>
+    
+  
+
+  <hr>
+
+  <a href="#" onclick="logout()">🚪 Logout</a>
+</div>
+  
+<h2>Laporan Perjalanan (FIX DRIVER FILTER)</h2>
+
+<div class="card">
+  <div class="filter-container">
+
+    <div>
+      <label class="label-bold">Driver</label><br>
+      <select id="filterDriver">
+        <option value="" disabled selected>-- Pilih Driver --</option>
+          </select>
+    </div>
+
+    <div>
+      <label class="label-bold">Dari</label><br>
+      <input type="date" id="tglAwal">
+    </div>
+
+    <div>
+      <label class="label-bold">Sampai</label><br>
+      <input type="date" id="tglAkhir">
+    </div>
+
+    <div>
+      <label class="label-bold">Cari</label><br>
+      <input type="text" id="searchSiswa" placeholder="Siswa...">
+    </div>
+
+    <div>
+      <label class="label-bold">Sort</label><br>
+      <select id="sortData">
+        <option value="new">Terbaru</option>
+        <option value="old">Terlama</option>
+        <option value="besar">Total Terbesar</option>
+        <option value="kecil">Total Terkecil</option>
+      </select>
+    </div>
+
+  </div>
+
+  <br>
+
+  <button class="btn btn-primary" onclick="applyFilter()">Tampilkan</button>
+  <button class="btn btn-danger" onclick="exportPDF()">PDF</button>
+  <button class="btn btn-success" onclick="exportWA()">WA</button>
+
+  <p>Total: <b id="totalData">0</b></p>
+  <p>Uang: <b id="totalUang">Rp 0</b></p>
+</div>
+ 
+<div class="card">
+  <div class="table-wrapper">
+    <table>
+      <tbody id="laporanBody"></tbody>
+    </table>
+  </div>
+</div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  query,
+  orderBy
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBxbArCZ6iIWQ8wS7QIonZOeN4t_r9o2WU",
+  authDomain: "schoolbus-6a7fd.firebaseapp.com",
+  databaseURL: "https://schoolbus-6a7fd-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "schoolbus-6a7fd",
+  storageBucket: "schoolbus-6a7fd.firebasestorage.app",
+  messagingSenderId: "486602913199",
+  appId: "1:486602913199:web:9547f39f5f57f9c87b2b5a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ================= LOGIN DATA =================
+const role = localStorage.getItem("role");
+const username = localStorage.getItem("username");
+const driverIdLogin = localStorage.getItem("driverId");
+
+if(!role){
+  alert("Harus login");
+  window.location.href = "index.html";
+}
+
+// ================= GLOBAL =================
+let allData = [];
+let filteredData = [];
+let driverList = [];
+
+function rupiah(n){
+  return "Rp " + Number(n||0).toLocaleString("id-ID");
+}
+
+// ================= LOAD DATA =================
+async function loadData(){
+
+  const snap = await getDocs(
+    query(collection(db,"perjalanan"), orderBy("createdAt","desc"))
+  );
+
+  allData = [];
+  driverList = [];
+
+  snap.forEach(d=>{
+    const x = d.data();
+
+    // 🔥 KUNCI DRIVER (FIX UTAMA)
+    if(role !== "admin"){
+      if(!driverIdLogin) return;
+      if(x.driverId !== driverIdLogin) return;
+    }
+
+    allData.push(x);
+
+    if(x.driverId && x.namaDriver){
+      if(!driverList.some(v=>v.id === x.driverId)){
+        driverList.push({id:x.driverId, nama:x.namaDriver});
+      }
+    }
+  });
+
+  renderDriver();
+  applyFilter();
+}
+
+// ================= DRIVER DROPDOWN =================
+function renderDriver(){
+
+  const el = document.getElementById("filterDriver");
+  el.innerHTML = `<option value="">Semua</option>`;
+
+  driverList.forEach(d=>{
+    el.innerHTML += `<option value="${d.id}">${d.nama}</option>`;
+  });
+
+  if(role !== "admin"){
+    el.value = driverIdLogin || "";
+    el.disabled = true;
+  }
+}
+
+// ================= FILTER =================
+window.applyFilter = function(){
+
+  const driver = document.getElementById("filterDriver").value;
+  const awal = document.getElementById("tglAwal").value;
+  const akhir = document.getElementById("tglAkhir").value;
+  const search = document.getElementById("searchSiswa").value.toLowerCase();
+  const sort = document.getElementById("sortData").value;
+
+  filteredData = allData.filter(d=>{
+
+    // 🔥 DOUBLE LOCK DRIVER
+    if(role !== "admin"){
+      if(d.driverId !== driverIdLogin) return false;
+    }else{
+      if(driver && d.driverId !== driver) return false;
+    }
+
+    if(awal && d.tanggal < awal) return false;
+    if(akhir && d.tanggal > akhir) return false;
+
+    const namaSiswa = (
+      d.namaSiswa || d.nama || d.siswa || ""
+    ).toLowerCase();
+
+    if(search && !namaSiswa.includes(search)) return false;
+
+    return true;
+  });
+
+  if(sort==="new") filteredData.sort((a,b)=>b.tanggal.localeCompare(a.tanggal));
+  if(sort==="old") filteredData.sort((a,b)=>a.tanggal.localeCompare(b.tanggal));
+  if(sort==="besar") filteredData.sort((a,b)=>Number(b.total)-Number(a.total));
+  if(sort==="kecil") filteredData.sort((a,b)=>Number(a.total)-Number(b.total));
+
+  renderTable();
+}
+
+// ================= TABLE =================
+function renderTable(){
+
+  const body = document.getElementById("laporanBody");
+  body.innerHTML = "";
+
+  let group = {};
+  let grandTotal = 0;
+
+  filteredData.forEach(d=>{
+    if(!group[d.namaDriver]){
+      group[d.namaDriver] = [];
+    }
+    group[d.namaDriver].push(d);
+  });
+
+  Object.keys(group).forEach(driver => {
+
+    let total = 0;
+
+    body.innerHTML += `
+      <tr>
+        <td colspan="7" style="font-weight:bold;background:#e0f2fe">
+          🚐 ${driver}
+        </td>
+      </tr>
+      <tr>
+        <th>No</th>
+        <th>Siswa</th>
+        <th>Kelas</th>
+        <th>Alamat</th>
+        <th>Jarak</th>
+        <th>Trayek</th>
+        <th>Total</th>
+      </tr>
+    `;
+
+    group[driver].forEach((d,i)=>{
+      total += Number(d.total || 0);
+      grandTotal += Number(d.total || 0);
+
+      body.innerHTML += `
+        <tr>
+          <td>${i+1}</td>
+          <td>${d.namaSiswa || "-"}</td>
+          <td>${d.kelas || "-"}</td>
+          <td>${d.alamat || "-"}</td>
+          <td>${d.jarak || 0} Km</td>
+          <td>${(d.trayek || "-").toUpperCase()}</td>
+          <td>${rupiah(d.total)}</td>
+        </tr>
+      `;
+    });
+
+    const potongan = total * 0.1;
+    const dibayar = total - potongan;
+
+    body.innerHTML += `
+      <tr><td colspan="6"><b>Total</b></td><td><b>${rupiah(total)}</b></td></tr>
+      <tr><td colspan="6">Potongan 10%</td><td>${rupiah(potongan)}</td></tr>
+      <tr><td colspan="6"><b>Dibayarkan</b></td><td><b>${rupiah(dibayar)}</b></td></tr>
+      <tr><td colspan="7">----------------------</td></tr>
+    `;
+  });
+
+  document.getElementById("totalData").innerText = filteredData.length;
+  document.getElementById("totalUang").innerText = rupiah(grandTotal);
+}
+
+// ================= EXPORT WA =================
+window.exportWA = function(){
+
+  const safeData = role !== "admin"
+    ? filteredData.filter(d => d.driverId === driverIdLogin)
+    : filteredData;
+
+  let text = "*Laporan Perjalanan*%0A%0A";
+  let total = 0;
+
+  safeData.forEach((d,i)=>{
+    total += Number(d.total||0);
+    text += `${i+1}. ${d.namaSiswa} - ${d.namaDriver} - ${rupiah(d.total)}%0A`;
+  });
+
+  text += `%0ATotal: ${rupiah(total)}`;
+
+  window.open("https://wa.me/?text="+text);
+}
+
+// ================= EXPORT PDF =================
+window.exportPDF = function(){
+
+  const safeData = role !== "admin"
+    ? filteredData.filter(d => d.driverId === driverIdLogin)
+    : filteredData;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  let y = 10;
+  doc.text("Laporan Perjalanan", 14, y);
+  y += 10;
+
+  let group = {};
+
+  safeData.forEach(d=>{
+    if(!group[d.namaDriver]){
+      group[d.namaDriver] = [];
+    }
+    group[d.namaDriver].push(d);
+  });
+
+  Object.keys(group).forEach(driver => {
+
+    doc.text("Driver: " + driver, 14, y);
+    y += 6;
+
+    let total = 0;
+
+    const rows = group[driver].map((d,i)=>{
+      total += Number(d.total || 0);
+
+      return [
+        i+1,
+        d.namaSiswa || "-",
+        d.kelas || "-",
+        d.alamat || "-",
+        (d.jarak || 0) + " Km",
+        (d.trayek || "-").toUpperCase(),
+        rupiah(d.total)
+      ];
+    });
+
+    doc.autoTable({
+      startY: y,
+      head:[["No","Siswa","Kelas","Alamat","Jarak","Trayek","Total"]],
+      body: rows
+    });
+
+    y = doc.lastAutoTable.finalY + 6;
+
+    const potongan = total * 0.1;
+    const dibayar = total - potongan;
+
+    doc.text("Total: " + rupiah(total), 14, y); y+=5;
+    doc.text("Potongan 10%: " + rupiah(potongan), 14, y); y+=5;
+    doc.text("Dibayarkan: " + rupiah(dibayar), 14, y); y+=10;
+
+  });
+
+  doc.save("laporan-driver.pdf");
+}
+
+// ================= INIT =================
+loadData();
+  // TOGGLE SIDEBAR
+window.toggleMenu = function(){
+  document.querySelector(".sidebar").classList.toggle("show");
+}
+  
+  document.addEventListener("click", function(e){
+  const sidebar = document.querySelector(".sidebar");
+  const btn = document.querySelector(".menu-toggle");
+
+  // jangan tutup kalau klik di dalam sidebar
+  if(sidebar.contains(e.target) || btn.contains(e.target)){
+    return;
+  }
+
+  sidebar.classList.remove("show");
+});
+  window.logout = function(){
+  localStorage.clear();
+  window.location.href = "index.html";
+}
+</script>
+
+</body>
+</html>
