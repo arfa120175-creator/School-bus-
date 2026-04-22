@@ -176,28 +176,23 @@ button{
 <div id="overlay" class="overlay"></div>
 
 <div class="content">
-
-<h3>🚐 Manajemen Driver</h3>
+<h4 id="formTitle">➕ Tambah Driver</h4>
 
 <div class="card">
   <input type="text" id="nama" placeholder="Nama">
   <input type="text" id="noHp" placeholder="No HP">
   <input type="text" id="alamat" placeholder="Alamat">
   <input type="date" id="tglInput">
-  <button onclick="saveDriver()">Simpan</button>
-</div>
 
+  <button id="btnSave" onclick="saveDriver()">Simpan</button>
+    <button id="btnCancel" onclick="cancelEdit()" style="display:none;background:#aaa;">Batal</button>
+</div>
 <div class="card">
-  <input type="text" id="search" placeholder="Cari driver..." oninput="filterData()">
+  <h4>📋 List Driver</h4>
+  <div id="list"></div>
 </div>
-
-<div class="card">
-  <div id="list">Loading...</div>
-</div>
-
-</div>
-
 <!-- POPUP -->
+  
 <div id="popupEdit" class="popup">
   <div class="popup-content">
     <h3>Edit Driver</h3>
@@ -209,10 +204,11 @@ button{
     <button onclick="closePopup()" class="btn-cancel">Batal</button>
   </div>
 </div>
+  
 
- <script type="module">
+<script type="module">
 
-// ===== IMPORT FIREBASE =====
+// ===== FIREBASE =====
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
@@ -223,7 +219,8 @@ import {
   doc,
   onSnapshot,
   query,
-  orderBy
+  orderBy,
+  where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ===== CONFIG =====
@@ -236,40 +233,37 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ===== ROLE =====
-  
-  const role = (localStorage.getItem("role") || "").toLowerCase();
+// ===== ELEMENT =====
+const namaEl = document.getElementById("nama");
+const noHpEl = document.getElementById("noHp");
+const alamatEl = document.getElementById("alamat");
+const tglEl = document.getElementById("tglInput");
+const listEl = document.getElementById("list");
+const searchEl = document.getElementById("search");
 
-// sembunyikan menu setting kalau bukan admin
+// ===== ROLE & USER =====
+const role = (localStorage.getItem("role") || "").toLowerCase();
+const userLogin = localStorage.getItem("username") || "";
+
+// sembunyikan menu setting
 if(role !== "admin"){
   const menu = document.getElementById("menuConfig");
-  if(menu){
-    menu.style.display = "none";
-  }
+  if(menu) menu.style.display = "none";
 }
-
 
 // ===== SIDEBAR =====
 window.toggleSidebar = function(){
-  const s = document.getElementById("sidebar");
-  const o = document.getElementById("overlay");
-
-  s.classList.toggle("show");
-  o.classList.toggle("show");
+  sidebar.classList.toggle("show");
+  overlay.classList.toggle("show");
 };
 
-document.getElementById("overlay").onclick = ()=>{
-  document.getElementById("sidebar").classList.remove("show");
-  document.getElementById("overlay").classList.remove("show");
+overlay.onclick = ()=>{
+  sidebar.classList.remove("show");
+  overlay.classList.remove("show");
 };
 
 document.addEventListener("click", function(e){
-  const sidebar = document.getElementById("sidebar");
-  const btn = document.querySelector(".menu-toggle");
-  const overlay = document.getElementById("overlay");
-
-  if(sidebar.contains(e.target) || btn.contains(e.target)) return;
-
+  if(sidebar.contains(e.target) || document.querySelector(".menu-toggle").contains(e.target)) return;
   sidebar.classList.remove("show");
   overlay.classList.remove("show");
 });
@@ -278,9 +272,22 @@ document.addEventListener("click", function(e){
 let drivers = [];
 let editId = null;
 
-// ===== LOAD DATA =====
-const q = query(collection(db,"drivers"), orderBy("createdAt","desc"));
+// ===== QUERY ROLE BASE =====
 
+  let q;
+
+if(role === "admin"){
+  q = query(collection(db,"drivers"), orderBy("createdAt","desc"));
+}else{
+  q = query(
+    collection(db,"drivers"),
+    where("user","==",userLogin)
+  );
+}
+  
+  
+  
+// ===== LOAD DATA =====
 onSnapshot(q, snap=>{
   drivers = [];
   snap.forEach(d=>{
@@ -302,15 +309,26 @@ window.saveDriver = async function(){
   }
 
   await addDoc(collection(db,"drivers"),{
-    nama,noHp,alamat,tglInput:tgl,
+    nama,
+    noHp,
+    alamat,
+    tglInput: tgl,
+    user: userLogin,
     createdAt: Date.now()
   });
 
+  alert("✅ Data driver berhasil disimpan"); // 🔥 ini tambahan
+
   resetForm();
 };
-
 // ===== DELETE =====
-window.del = async function(id){
+window.del = async function(id, dataUser){
+
+  if(role !== "admin" && dataUser !== userLogin){
+    alert("Tidak punya akses");
+    return;
+  }
+
   if(confirm("Hapus?")){
     await deleteDoc(doc(db,"drivers",id));
   }
@@ -318,6 +336,12 @@ window.del = async function(id){
 
 // ===== EDIT =====
 window.edit = function(d){
+
+  if(role !== "admin" && d.user !== userLogin){
+    alert("Tidak punya akses");
+    return;
+  }
+
   editId = d.id;
 
   editNama.value = d.nama;
@@ -328,6 +352,7 @@ window.edit = function(d){
   popupEdit.style.display = "flex";
 };
 
+// ===== UPDATE =====
 window.updateDriver = async function(){
   await updateDoc(doc(db,"drivers",editId),{
     nama: editNama.value,
@@ -339,13 +364,14 @@ window.updateDriver = async function(){
   closePopup();
 };
 
+// ===== POPUP =====
 window.closePopup = function(){
   popupEdit.style.display = "none";
 };
 
 // ===== SEARCH =====
 window.filterData = function(){
-  const key = search.value.toLowerCase();
+  const key = searchEl.value.toLowerCase();
   render(drivers.filter(d=>d.nama.toLowerCase().includes(key)));
 };
 
@@ -357,26 +383,28 @@ function render(data){
     html += `
     <div class="driver-item">
       <b>${d.nama}</b><br>
-      <span class="small">${d.noHp}</span><br>
-      <span class="small">${d.alamat}</span>
-
+    <span class="small">${d.alamat}</span><br>
+    <span class="small">User: ${d.user}</span>
+      
+      ${(role === "admin" || d.user === userLogin) ? `
       <div class="actions">
         <button class="edit" onclick='edit(${JSON.stringify(d)})'>Edit</button>
-        <button class="delete" onclick="del('${d.id}')">Hapus</button>
+        <button class="delete" onclick="del('${d.id}','${d.user}')">Hapus</button>
       </div>
+      ` : ""}
+
     </div>
     `;
   });
 
-  list.innerHTML = html || "Tidak ada data";
+  listEl.innerHTML = html || "Tidak ada data";
 }
-
 // ===== RESET =====
 function resetForm(){
-  nama.value = "";
-  noHp.value = "";
-  alamat.value = "";
-  tglInput.value = "";
+  namaEl.value = "";
+  noHpEl.value = "";
+  alamatEl.value = "";
+  tglEl.value = "";
 }
 
 // ===== LOGOUT =====
@@ -385,6 +413,8 @@ window.logout = function(){
   window.location.href = "index.html";
 };
 
+
 </script>
+ 
 </body>
 </html>
