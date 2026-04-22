@@ -185,7 +185,28 @@ table{
 
 .table-wrapper::-webkit-scrollbar-thumb{
   background:#1e90ff;
-  border-radius:10px;
+  border-radius:14px;
+}
+  .header-driver{
+  background:#cbd5f5;
+  color:#11;
+  font-weight:600;
+  font-size:16px;
+}
+  #overlay{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.4);
+  z-index:900;
+  display:none;
+}
+
+/* kalau aktif */
+#overlay.show{
+  display:block;
 }
   </style>
 </head>
@@ -194,23 +215,23 @@ table{
 <button class="menu-toggle" onclick="toggleMenu()">☰</button>
 
 <div class="sidebar">
-  <h3>🚌 School Bus</h3>
+    <h3>🚌 School Bus</h3>
 
   <a href="dashboard.html">🏠 Dashboard</a>
-  <a href="input.html">📝 Input</a>
+  <a href="input.html">📝 Input Perjalanan </a>
   <a href="lapor.html" class="active">📊 Laporan</a>
   <a href="cari.html">✏️ Edit</a>
   <a href="driver.html">🧑‍✈️ Driver</a>
    <a href="config.html" id="menuConfig">⚙️ <span>Setting</span></a>
     
-  
-
-  <hr>
+   <hr>
 
   <a href="#" onclick="logout()">🚪 Logout</a>
 </div>
-  
-<h2>Laporan Perjalanan (FIX DRIVER FILTER)</h2>
+  <div id="overlay" onclick="closeSidebar()"></div>
+
+<h2>Laporan Perjalanan</h2>
+  <h2>DRIVER KHALIFA</h2>
 
 <div class="card">
   <div class="filter-container">
@@ -266,6 +287,7 @@ table{
     </table>
   </div>
 </div>
+  
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -289,12 +311,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ================= LOGIN DATA =================
+// ================= LOGIN =================
 const role = localStorage.getItem("role");
-const username = localStorage.getItem("username");
 const driverIdLogin = localStorage.getItem("driverId");
 
-if(!role){
+if (!role) {
   alert("Harus login");
   window.location.href = "index.html";
 }
@@ -304,34 +325,52 @@ let allData = [];
 let filteredData = [];
 let driverList = [];
 
-function rupiah(n){
-  return "Rp " + Number(n||0).toLocaleString("id-ID");
+function rupiah(n) {
+  return "Rp " + Number(n || 0).toLocaleString("id-ID");
 }
 
-// ================= LOAD DATA =================
-async function loadData(){
+// ================= SIDEBAR TOGGLE =================
 
+  window.toggleMenu = function () {
+  const sidebar = document.querySelector(".sidebar");
+  const overlay = document.getElementById("overlay");
+
+  sidebar.classList.toggle("show");
+  overlay.classList.toggle("show");
+};
+  window.closeSidebar = function () {
+  document.querySelector(".sidebar").classList.remove("show");
+  document.getElementById("overlay").classList.remove("show");
+};
+
+  document.querySelectorAll(".sidebar a").forEach(el => {
+  el.addEventListener("click", () => {
+    closeSidebar();
+  });
+});
+// ================= LOAD DATA =================
+async function loadData() {
   const snap = await getDocs(
-    query(collection(db,"perjalanan"), orderBy("createdAt","desc"))
+    query(collection(db, "perjalanan"), orderBy("createdAt", "desc"))
   );
 
   allData = [];
   driverList = [];
 
-  snap.forEach(d=>{
+  snap.forEach(d => {
     const x = d.data();
 
-    // 🔥 KUNCI DRIVER (FIX UTAMA)
-    if(role !== "admin"){
-      if(!driverIdLogin) return;
-      if(x.driverId !== driverIdLogin) return;
+    // FILTER DRIVER USER NON ADMIN
+    if (role !== "admin") {
+      if (!driverIdLogin) return;
+      if (x.driverId !== driverIdLogin) return;
     }
 
     allData.push(x);
 
-    if(x.driverId && x.namaDriver){
-      if(!driverList.some(v=>v.id === x.driverId)){
-        driverList.push({id:x.driverId, nama:x.namaDriver});
+    if (x.driverId && x.namaDriver) {
+      if (!driverList.some(v => v.id === x.driverId)) {
+        driverList.push({ id: x.driverId, nama: x.namaDriver });
       }
     }
   });
@@ -341,72 +380,70 @@ async function loadData(){
 }
 
 // ================= DRIVER DROPDOWN =================
-function renderDriver(){
-
+function renderDriver() {
   const el = document.getElementById("filterDriver");
   el.innerHTML = `<option value="">Semua</option>`;
 
-  driverList.forEach(d=>{
+  driverList.forEach(d => {
     el.innerHTML += `<option value="${d.id}">${d.nama}</option>`;
   });
 
-  if(role !== "admin"){
+  if (role !== "admin") {
     el.value = driverIdLogin || "";
     el.disabled = true;
   }
 }
 
 // ================= FILTER =================
-window.applyFilter = function(){
-
+window.applyFilter = function () {
   const driver = document.getElementById("filterDriver").value;
   const awal = document.getElementById("tglAwal").value;
   const akhir = document.getElementById("tglAkhir").value;
   const search = document.getElementById("searchSiswa").value.toLowerCase();
   const sort = document.getElementById("sortData").value;
 
-  filteredData = allData.filter(d=>{
+  filteredData = allData.filter(d => {
 
-    // 🔥 DOUBLE LOCK DRIVER
-    if(role !== "admin"){
-      if(d.driverId !== driverIdLogin) return false;
-    }else{
-      if(driver && d.driverId !== driver) return false;
+    if (role !== "admin") {
+      if (d.driverId !== driverIdLogin) return false;
+    } else {
+      if (driver && d.driverId !== driver) return false;
     }
 
-    if(awal && d.tanggal < awal) return false;
-    if(akhir && d.tanggal > akhir) return false;
+    const tglData = new Date(d.tanggal || 0);
+    const tglAwal = awal ? new Date(awal) : null;
+    const tglAkhir = akhir ? new Date(akhir) : null;
+
+    if (tglAwal && tglData < tglAwal) return false;
+    if (tglAkhir && tglData > tglAkhir) return false;
 
     const namaSiswa = (
       d.namaSiswa || d.nama || d.siswa || ""
     ).toLowerCase();
 
-    if(search && !namaSiswa.includes(search)) return false;
+    if (search && !namaSiswa.includes(search)) return false;
 
     return true;
   });
 
-  if(sort==="new") filteredData.sort((a,b)=>b.tanggal.localeCompare(a.tanggal));
-  if(sort==="old") filteredData.sort((a,b)=>a.tanggal.localeCompare(b.tanggal));
-  if(sort==="besar") filteredData.sort((a,b)=>Number(b.total)-Number(a.total));
-  if(sort==="kecil") filteredData.sort((a,b)=>Number(a.total)-Number(b.total));
+  if (sort === "new") filteredData.sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+  if (sort === "old") filteredData.sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+  if (sort === "besar") filteredData.sort((a, b) => Number(b.total) - Number(a.total));
+  if (sort === "kecil") filteredData.sort((a, b) => Number(a.total) - Number(b.total));
 
   renderTable();
-}
+};
 
 // ================= TABLE =================
-function renderTable(){
-
+function renderTable() {
   const body = document.getElementById("laporanBody");
   body.innerHTML = "";
 
   let group = {};
   let grandTotal = 0;
 
-  filteredData.forEach(d=>{
-    if(!group[d.namaDriver]){
-      group[d.namaDriver] = [];
-    }
+  filteredData.forEach(d => {
+    if (!group[d.namaDriver]) group[d.namaDriver] = [];
     group[d.namaDriver].push(d);
   });
 
@@ -416,9 +453,9 @@ function renderTable(){
 
     body.innerHTML += `
       <tr>
-        <td colspan="7" style="font-weight:bold;background:#e0f2fe">
-          🚐 ${driver}
-        </td>
+        <td colspan="7" class="header-driver">
+  🚐 ${driver}
+</td>
       </tr>
       <tr>
         <th>No</th>
@@ -431,13 +468,13 @@ function renderTable(){
       </tr>
     `;
 
-    group[driver].forEach((d,i)=>{
+    group[driver].forEach((d, i) => {
       total += Number(d.total || 0);
       grandTotal += Number(d.total || 0);
 
       body.innerHTML += `
         <tr>
-          <td>${i+1}</td>
+          <td>${i + 1}</td>
           <td>${d.namaSiswa || "-"}</td>
           <td>${d.kelas || "-"}</td>
           <td>${d.alamat || "-"}</td>
@@ -452,72 +489,123 @@ function renderTable(){
     const dibayar = total - potongan;
 
     body.innerHTML += `
-      <tr><td colspan="6"><b>Total</b></td><td><b>${rupiah(total)}</b></td></tr>
-      <tr><td colspan="6">Potongan 10%</td><td>${rupiah(potongan)}</td></tr>
-      <tr><td colspan="6"><b>Dibayarkan</b></td><td><b>${rupiah(dibayar)}</b></td></tr>
-      <tr><td colspan="7">----------------------</td></tr>
-    `;
+     
+    <tr class="row-total">
+  <td colspan="6">Total</td>
+  <td>${rupiah(total)}</td>
+</tr>
+
+<tr class="row-potongan">
+  <td colspan="6">Potongan 10%</td>
+  <td>${rupiah(potongan)}</td>
+</tr>
+
+<tr class="row-bayar">
+  <td colspan="6">Dibayarkan</td>
+  <td>${rupiah(dibayar)}</td>
+</tr>
+    </tr>
+ `;
   });
 
   document.getElementById("totalData").innerText = filteredData.length;
   document.getElementById("totalUang").innerText = rupiah(grandTotal);
 }
 
-// ================= EXPORT WA =================
-window.exportWA = function(){
+// ================= WA EXPORT =================
+window.exportWA = function () {
 
-  const safeData = role !== "admin"
-    ? filteredData.filter(d => d.driverId === driverIdLogin)
-    : filteredData;
+  let group = {};
+  let grandTotal = 0;
 
-  let text = "*Laporan Perjalanan*%0A%0A";
-  let total = 0;
-
-  safeData.forEach((d,i)=>{
-    total += Number(d.total||0);
-    text += `${i+1}. ${d.namaSiswa} - ${d.namaDriver} - ${rupiah(d.total)}%0A`;
+  filteredData.forEach(d => {
+    if (!group[d.namaDriver]) group[d.namaDriver] = [];
+    group[d.namaDriver].push(d);
   });
 
-  text += `%0ATotal: ${rupiah(total)}`;
+  let text = "📊 *LAPORAN PERJALANAN*\n\n";
 
-  window.open("https://wa.me/?text="+text);
-}
+  Object.keys(group).forEach(driver => {
 
-// ================= EXPORT PDF =================
-window.exportPDF = function(){
+    text += `🚐 *Driver: ${driver}*\n`;
 
-  const safeData = role !== "admin"
-    ? filteredData.filter(d => d.driverId === driverIdLogin)
-    : filteredData;
+    let total = 0;
+
+    group[driver].forEach((d, i) => {
+      let biaya = Number(d.total || 0);
+      total += biaya;
+      grandTotal += biaya;
+
+      text += `\n${i + 1}. ${d.namaSiswa} (${d.kelas}) - ${rupiah(biaya)}`;
+    });
+
+    const potongan = total * 0.1;
+    const dibayar = total - potongan;
+
+    text += `\n\nSubtotal: ${rupiah(total)}`;
+    text += `\nPotongan: ${rupiah(potongan)}`;
+    text += `\nDibayarkan: ${rupiah(dibayar)}`;
+    text += `\n\n----------------------\n\n`;
+  });
+
+  text += `🔥 TOTAL: ${rupiah(grandTotal)}`;
+
+  window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+};
+
+// ================= PDF EXPORT =================
+// ================= PDF EXPORT =================
+window.exportPDF = function () {
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
+  
+  // 🔥 Set font default biar semua sama
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
 
   let y = 10;
-  doc.text("Laporan Perjalanan", 14, y);
-  y += 10;
+  
+  // Judul pake font lebih gede + bold
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("Laporan Perjalanan School Bus", 105, y, { align: "center" });
+  y += 8;
+  
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text("KHALIFA IMS", 105, y, { align: "center" });
+  y += 8;
+  
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(`Tanggal cetak: ${new Date().toLocaleDateString("id-ID")}`, 105, y, { align: "center" });
+  y += 8;
 
   let group = {};
+  let grandTotal = 0;
 
-  safeData.forEach(d=>{
-    if(!group[d.namaDriver]){
-      group[d.namaDriver] = [];
-    }
+  filteredData.forEach(d => {
+    if (!group[d.namaDriver]) group[d.namaDriver] = [];
     group[d.namaDriver].push(d);
   });
 
   Object.keys(group).forEach(driver => {
 
+    // Nama driver bold
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
     doc.text("Driver: " + driver, 14, y);
     y += 6;
 
     let total = 0;
 
-    const rows = group[driver].map((d,i)=>{
+    const rows = group[driver].map((d, i) => {
       total += Number(d.total || 0);
+      grandTotal += Number(d.total || 0);
 
       return [
-        i+1,
+        i + 1,
         d.namaSiswa || "-",
         d.kelas || "-",
         d.alamat || "-",
@@ -527,10 +615,28 @@ window.exportPDF = function(){
       ];
     });
 
+    // 🔥 autoTable pake font yang sama
     doc.autoTable({
       startY: y,
-      head:[["No","Siswa","Kelas","Alamat","Jarak","Trayek","Total"]],
-      body: rows
+      head: [["No", "Siswa", "Kelas", "Alamat", "Jarak", "Trayek", "Total"]],
+      body: rows,
+      styles: {
+        font: "helvetica",
+        fontSize: 9,
+        cellPadding: 2.5,
+        textColor: [31, 41, 55]
+      },
+      headStyles: {
+        font: "helvetica",
+        fontStyle: "bold",
+        fontSize: 9,
+        fillColor: [30, 144, 255],
+        textColor: [255, 255, 255]
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252]
+      },
+      margin: { left: 14, right: 14 }
     });
 
     y = doc.lastAutoTable.finalY + 6;
@@ -538,37 +644,30 @@ window.exportPDF = function(){
     const potongan = total * 0.1;
     const dibayar = total - potongan;
 
-    doc.text("Total: " + rupiah(total), 14, y); y+=5;
-    doc.text("Potongan 10%: " + rupiah(potongan), 14, y); y+=5;
-    doc.text("Dibayarkan: " + rupiah(dibayar), 14, y); y+=10;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text("Subtotal: " + rupiah(total), 14, y); y += 5;
+    doc.text("Potongan 10%: " + rupiah(potongan), 14, y); y += 5;
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Dibayarkan: " + rupiah(dibayar), 14, y); y += 10;
 
+    // Cek kalau halaman hampir penuh, bikin halaman baru
+    if (y > 270) {
+      doc.addPage();
+      y = 15;
+    }
   });
 
-  doc.save("laporan-driver.pdf");
-}
+  // Total akhir di halaman terakhir
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text("GRAND TOTAL: " + rupiah(grandTotal), 14, y);
 
-// ================= INIT =================
-loadData();
-  // TOGGLE SIDEBAR
-window.toggleMenu = function(){
-  document.querySelector(".sidebar").classList.toggle("show");
-}
-  
-  document.addEventListener("click", function(e){
-  const sidebar = document.querySelector(".sidebar");
-  const btn = document.querySelector(".menu-toggle");
-
-  // jangan tutup kalau klik di dalam sidebar
-  if(sidebar.contains(e.target) || btn.contains(e.target)){
-    return;
-  }
-
-  sidebar.classList.remove("show");
-});
-  window.logout = function(){
-  localStorage.clear();
-  window.location.href = "index.html";
-}
+  doc.save(`Laporan_${new Date().toISOString().slice(0,10)}.pdf`);
+};
+// ================= AUTO START =================
+window.addEventListener("DOMContentLoaded", loadData);
 </script>
 
 </body>

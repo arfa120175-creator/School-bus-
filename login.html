@@ -94,10 +94,15 @@ import {
 
 // ================= FIREBASE =================
 const firebaseConfig = {
-  apiKey: "AIzaSy...",
+  apiKey: "AIzaSyBxbArCZ6iIWQ8wS7QIonZOeN4t_r9o2WU",
   authDomain: "schoolbus-6a7fd.firebaseapp.com",
-  projectId: "schoolbus-6a7fd"
+  databaseURL: "https://schoolbus-6a7fd-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "schoolbus-6a7fd",
+  storageBucket: "schoolbus-6a7fd.firebasestorage.app",
+  messagingSenderId: "486602913199",
+  appId: "1:486602913199:web:9547f39f5f57f9c87b2b5a"
 };
+  
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);

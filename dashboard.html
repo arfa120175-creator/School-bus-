@@ -68,7 +68,9 @@
       margin-bottom:6px;
     }
 
-    .hero p{
+  
+       .hero p{
+     
       font-size:13px;
       line-height:1.6;
       opacity:.96;
@@ -290,43 +292,42 @@
       }
 
       .hero-top{
-        flex-direction:row;
+        flex-direction:auto;
       }
     }
-  /* SIDEBAR */
+    /* SIDEBAR */
 .sidebar{
   position:fixed;
-  left:0;
   top:0;
-  width:230px;
+  left:0;
+  width:220px;
   height:100%;
   background:#1e293b;
   color:#fff;
-  padding:20px 10px;
-  transition:.3s;
+  padding:20px 12px;
+  display:flex;
+  flex-direction:column;
   z-index:1000;
 }
 
-.sidebar h2{
+.sidebar h3{
   text-align:center;
   margin-bottom:20px;
-  font-size:14px;
 }
 
 .sidebar a{
-  display:flex;
-  align-items:center;
-  gap:6px;
   color:#cbd5f5;
   text-decoration:none;
-  padding:12px;
+  padding:10px 12px;
   border-radius:10px;
   margin-bottom:6px;
+  display:block;
   font-size:14px;
 }
 
 .sidebar a:hover{
   background:#334155;
+  color:#fff;
 }
 
 .sidebar a.active{
@@ -334,110 +335,187 @@
   color:#fff;
 }
 
-/* CONTENT SHIFT */
-.main{
-  margin-left:240px;
+/* CONTENT GESER */
+body{
+  margin-left:230px;
 }
 
 /* TOGGLE BUTTON */
-.toggle-btn{
-  position:fixed;
-  top:10px;
-  left:10px;
-  background:#1e90ff;
-  color:#fff;
-  border:none;
-  padding:10px;
-  border-radius:10px;
-  cursor:pointer;
-  z-index:1100;
+.menu-toggle{
+  display:none;
 }
 
-/* RESPONSIVE */
+/* MOBILE */
 @media(max-width:768px){
   .sidebar{
-    left:-250px;
+    left:-100%;
+    transition:.3s;
   }
+
   .sidebar.show{
     left:0;
   }
-  .main{
+  
+  
+.sidebar h3{
+  text-align:center;
+  margin-bottom:20px;
+}
+
+  body{
     margin-left:0;
   }
+
+  .menu-toggle{
+    display:block;
+    position:fixed;
+    top:10px;
+    left:10px;
+    background:#1e90ff;
+    color:#fff;
+    border:none;
+    padding:8px 10px;
+    border-radius:8px;
+    z-index:1100;
+  }
 }
-  .sidebar{
+ 
+.label-bold {
+    font-weight: bold;
+}
+.filter-container div{
+  display:flex;
+  flex-direction:column;
+  font-size:13px;
+}
+
+.label-bold{
+  font-weight:bold;
+  margin-bottom:4px;
+}
+select{
+  color:#111;            /* biar hitam tegas */
+  font-weight:600;       /* agak bold */
+}
+/* WRAPPER BIAR BISA SCROLL */
+.table-wrapper{
+  overflow-x:auto;
+}
+
+/* TABLE MIN WIDTH BIAR GA KEJEPIT */
+table{
+  min-width:600px;
+}
+
+/* MOBILE OPTIMIZE */
+@media(max-width:768px){
+
+  th, td{
+    font-size:11px;
+    padding:6px;
+    white-space:nowrap; /* biar ga turun ke bawah */
+  }
+
+  h2{
+    font-size:16px;
+  }
+
+  .card{
+    padding:10px;
+  }
+
+}
+  .table-wrapper::-webkit-scrollbar{
+  height:6px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb{
+  background:#1e90ff;
+  border-radius:14px;
+}
+  .header-driver{
+  background:#cbd5f5;
+  color:#11;
+  font-weight:600;
+  font-size:16px;
+}
+  #overlay{
   position:fixed;
-  left:0;
   top:0;
-  width:230px;
-  height:100vh; /* GANTI INI */
-  overflow-y:auto; /* TAMBAH INI */
-  padding-bottom:80px; /* BIAR LOGOUT NGGAK KEJEPIT */
-}
-  /* ===== SIDEBAR ===== */
-.sidebar{
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 240px;
-  height: 100%;
-  background: #111827;
-  color: #fff;
-  padding: 16px;
-  transform: translateX(-100%);
-  transition: 0.3s ease;
-  z-index: 999;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.4);
+  z-index:900;
+  display:none;
 }
 
-.sidebar.show{
-  transform: translateX(0);
+/* kalau aktif */
+#overlay.show{
+  display:block;
 }
 
-.sidebar h2{
-  margin-bottom: 15px;
+  .hero p {
+  font-size: 14px;
+  line-height: 1.8;
 }
 
-.sidebar a{
-  display: block;
-  color: #fff;
-  text-decoration: none;
-  padding: 10px;
-  border-radius: 8px;
-  margin-bottom: 6px;
-}
-
-.sidebar a.active{
-  background: #1e90ff;
-}
-
-/* tombol hamburger */
-.toggle-btn{
-  position: fixed;
-  top: 12px;
-  left: 12px;
-  z-index: 1000;
-  background: #1e90ff;
-  color: white;
-  border: none;
-  padding: 10px 12px;
-  border-radius: 10px;
+.salam {
   font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  display: inline-block;
+  animation: wave 2s ease-in-out;
 }
 
-/* biar konten tidak ketutup */
-.main{
-  margin-left: 0;
+.username {
+  font-size: 19px;
+  font-weight: 700;
+  color: yellow; /* kuning soft biar pop-up */
+  text-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.role {
+  font-size: 13px;
+  colour:yellow;
+  background: rgba(255,255,255,0.2);
+  padding: 3px 10px;
+  border-radius: 20px;
+  display: inline-block;
+  margin: 4px 0;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.3);
+}
+
+.role b {
+  color: red;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.subtext {
+  color: black;
+  font-size: 13px;
+  opacity: 0.95;
+  display: inline-block;
+  margin-top: 2px;
+}
+
+@keyframes wave {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
 }
   </style>
  </head>
 <body>
-   <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
+  <button class="menu-toggle" onclick="toggleMenu()">☰</button>
 
+   
 <div class="sidebar" id="sidebar">
-  <h2>School Bus</h2>
+  <h3>School Bus</h3>
 
   <a href="dashboard.html" class="active">🏠 Dashboard</a>
-  <a href="input.html">📝 Input</a>
+  <a href="input.html">📝 Input Perjalanan </a>
   <a href="driver.html">🧑‍✈️ Driver</a>
   <a href="cari.html">✏️ Edit</a>
   <a href="lapor.html">📊 Laporan</a>
@@ -450,7 +528,7 @@
   <hr>
   <a href="#" onclick="logout()">🚪 Logout</a>
 </div>
-  
+  <div id="overlay" onclick="closeSidebar()"></div>
   
 <div class="main">
   <!-- SEMUA KONTEN LAMA DI SINI -->
@@ -463,8 +541,11 @@
     <div>
       <h1>Dashboard School Bus</h1>
       <p>
-        Kelola perjalanan siswa, driver, laporan, backup data, dan konfigurasi harga
-        dalam satu halaman yang lebih rapi dan nyaman dipakai di HP.
+        Kelola perjalanan siswa, 
+        driver, laporan, backup data, 
+        dan konfigurasi harga
+        dalam satu halaman 
+        yang lebih rapi dan nyaman dipakai di HP.
       </p>
     </div>
     <div class="hero-badge">
@@ -599,10 +680,9 @@ else salam = "Selamat malam";
 
 // 🔥 tampilkan salam + role
 document.querySelector(".hero p").innerHTML =
-  `${salam}, <b>${username}</b> 👋<br>
-   Role: <b>${role.toUpperCase()}</b><br>
-   Kelola perjalanan dengan mudah.`;
-
+  `<span class="salam">${salam},</span> <span class="username">${username}</span> 👋<br>
+   <span class="role">Role: <b>${role.toUpperCase()}</b></span><br>
+   <span class="subtext">Kelola perjalanan dengan mudah.</span>`;
 // 🔥 info user box
 document.getElementById("infoUser").innerHTML =
   `User: <b>${username}</b><br>
@@ -714,6 +794,19 @@ async function loadData(){
   }
 }
 
+  //toggle//
+  window.toggleMenu = function () {
+  const sidebar = document.querySelector(".sidebar");
+  const overlay = document.getElementById("overlay");
+
+  sidebar.classList.toggle("show");
+  overlay.classList.toggle("show");
+};
+  
+  window.closeSidebar = function () {
+  document.querySelector(".sidebar").classList.remove("show");
+  document.getElementById("overlay").classList.remove("show");
+};
 // ================= LOGOUT =================
 window.logout = function(){
   localStorage.clear();
@@ -732,8 +825,6 @@ links.forEach(link=>{
     link.classList.add("active");
   }
 });
-  window.toggleSidebar = function () {
-  document.getElementById("sidebar").classList.toggle("show");
-};
+  
 </script>
 
