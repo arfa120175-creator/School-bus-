@@ -336,16 +336,16 @@ body{
 
 <!-- ===== SCRIPT ===== -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
   collection,
   addDoc,
-  getDocs,
   deleteDoc,
   doc,
   updateDoc,
-  getDoc
+  getDoc,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -357,16 +357,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ================= ROLE =================
+// ================= AUTH =================
 const role = (localStorage.getItem("role") || "").toLowerCase();
 const login = localStorage.getItem("login");
 
-// 🔒 wajib login
 if (login !== "true") {
   window.location.href = "index.html";
 }
 
-// 🔒 hanya admin bisa akses halaman user
 if (role !== "admin") {
   alert("Akses ditolak!");
   window.location.href = "dashboard.html";
@@ -375,6 +373,8 @@ if (role !== "admin") {
 // ================= STATE =================
 let editId = null;
 let driverMap = {};
+let unsubscribeUser = null;
+let unsubscribeDriver = null;
 
 // ================= SIDEBAR =================
 window.toggleSidebar = function () {
@@ -386,68 +386,73 @@ window.logout = function () {
   window.location.href = "index.html";
 };
 
-// ================= LOAD DRIVER =================
-async function loadDriverOption() {
+// ================= DRIVER REALTIME =================
+function loadDriverRealtime() {
   const select = document.getElementById("driverId");
-  select.innerHTML = '<option value="">-- Pilih Driver --</option>';
 
-  driverMap = {};
+  if (unsubscribeDriver) unsubscribeDriver();
 
-  const snapshot = await getDocs(collection(db, "drivers"));
+  unsubscribeDriver = onSnapshot(collection(db, "drivers"), (snapshot) => {
+    select.innerHTML = '<option value="">-- Pilih Driver --</option>';
+    driverMap = {};
 
-  snapshot.forEach((docSnap) => {
-    const d = docSnap.data();
-    const nama = d.nama || "-";
+    snapshot.forEach((docSnap) => {
+      const d = docSnap.data();
+      const nama = d.nama || "-";
 
-    driverMap[docSnap.id] = nama;
+      driverMap[docSnap.id] = nama;
 
-    const opt = document.createElement("option");
-    opt.value = docSnap.id;
-    opt.textContent = nama;
-    select.appendChild(opt);
+      const opt = document.createElement("option");
+      opt.value = docSnap.id;
+      opt.textContent = nama;
+      select.appendChild(opt);
+    });
   });
 }
 
-// ================= TOGGLE DRIVER FIELD =================
+// ================= TOGGLE DRIVER =================
 window.toggleDriver = function () {
   const roleInput = document.getElementById("role").value;
   document.getElementById("driverId").style.display =
     roleInput === "driver" ? "block" : "none";
 };
 
-// ================= LOAD USER =================
-async function loadUser() {
+// ================= USER REALTIME =================
+function loadUserRealtime() {
   const list = document.getElementById("listUser");
-  list.innerHTML = "";
 
-  const snapshot = await getDocs(collection(db, "users"));
+  if (unsubscribeUser) unsubscribeUser();
 
-  snapshot.forEach((docSnap) => {
-    const u = docSnap.data();
+  unsubscribeUser = onSnapshot(collection(db, "users"), (snapshot) => {
+    list.innerHTML = "";
 
-    const card = document.createElement("div");
-    card.className = "card";
+    snapshot.forEach((docSnap) => {
+      const u = docSnap.data();
 
-    card.innerHTML = `
-      <div class="row">
-        <b>${u.username}</b>
-        <span>${u.role}</span>
-      </div>
+      const card = document.createElement("div");
+      card.className = "card";
 
-      <div class="row small">
-        Driver: ${u.driverName || driverMap[u.driverId] || "-"}
-      </div>
+      card.innerHTML = `
+        <div class="row">
+          <b>${u.username}</b>
+          <span>${u.role}</span>
+        </div>
 
-      <div class="row">
-        <button class="icon-btn edit"
-          onclick="editUser('${docSnap.id}')">✏️</button>
+        <div class="row small">
+          Driver: ${u.driverName || driverMap[u.driverId] || "-"}
+        </div>
 
-        <button class="icon-btn hapus"
-          onclick="hapusUser('${docSnap.id}')">🗑️</button>
-      </div>
-    `;
+        <div class="row">
+          <button class="icon-btn edit"
+            onclick="editUser('${docSnap.id}')">✏️</button>
 
-    list.appendChild(card);
+          <button class="icon-btn hapus"
+            onclick="hapusUser('${docSnap.id}')">🗑️</button>
+        </div>
+      `;
+
+      list.appendChild(card);
+    });
   });
 }
 
@@ -473,30 +478,33 @@ async function simpanUser() {
     password,
     role: roleInput,
     driverId: roleInput === "driver" ? driverId : "",
-    driverName: roleInput === "driver" ? driverMap[driverId] : ""
+    driverName: roleInput === "driver" ? driverMap[driverId] : "",
+    updatedAt: new Date()
   };
 
-  // UPDATE / CREATE
-  if (editId) {
-    await updateDoc(doc(db, "users", editId), payload);
-  } else {
-    await addDoc(collection(db, "users"), payload);
-  }
+  try {
+    if (editId) {
+      await updateDoc(doc(db, "users", editId), payload);
+    } else {
+      await addDoc(collection(db, "users"), payload);
+    }
 
-  // 🔥 SINKRON KE DRIVER COLLECTION
-  if (roleInput === "driver" && driverId) {
-    await updateDoc(doc(db, "drivers", driverId), {
-      username: username
-    });
-  }
+    // sinkron ke driver
+    if (roleInput === "driver" && driverId) {
+      await updateDoc(doc(db, "drivers", driverId), {
+        username: username
+      });
+    }
 
-  resetForm();
-  loadUser();
+    resetForm();
+  } catch (err) {
+    alert("Gagal simpan: " + err.message);
+  }
 }
 
 window.simpanUser = simpanUser;
 
-// ================= EDIT USER =================
+// ================= EDIT =================
 window.editUser = async function (id) {
   const snap = await getDoc(doc(db, "users", id));
   const u = snap.data();
@@ -512,9 +520,12 @@ window.editUser = async function (id) {
 
 // ================= HAPUS =================
 window.hapusUser = async function (id) {
-  if (confirm("Hapus user ini?")) {
+  if (!confirm("Hapus user ini?")) return;
+
+  try {
     await deleteDoc(doc(db, "users", id));
-    loadUser();
+  } catch (err) {
+    alert("Gagal hapus: " + err.message);
   }
 };
 
@@ -529,9 +540,10 @@ function resetForm() {
 }
 
 // ================= INIT =================
-await loadDriverOption();
+loadDriverRealtime();
 toggleDriver();
-loadUser();
+loadUserRealtime();
+</script>
 </script>
 
 </body>
