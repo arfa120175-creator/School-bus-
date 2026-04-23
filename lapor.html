@@ -668,7 +668,13 @@ window.exportPDF = function () {
 };
 // ================= AUTO START =================
 window.addEventListener("DOMContentLoaded", loadData);
-</script>
+// ===== LOGOUT =====
+window.logout = function(){
+  localStorage.clear();
+  window.location.href = "index.html";
+};
+
+  </script>
 
 </body>
 </html>
